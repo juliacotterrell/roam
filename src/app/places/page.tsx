@@ -86,6 +86,12 @@ setToday(localToday);
     }
 
     if (!currentPlace) return;
+    console.log("MAP DEBUG:", {
+  stopArrivalDate: stop.arrivalDate,
+  today,
+  country: currentPlace.name,
+  existingStatus: countryStatuses[currentPlace.name],
+});
 
     const status: CountryStatus =
       stop.arrivalDate > today ? "planned" : "visited";
@@ -96,6 +102,7 @@ setToday(localToday);
       countryStatuses[currentPlace.name] = status;
     }
   });
+  
 
   if (loading) {
     return <main className="p-8">Loading places...</main>;

@@ -1,6 +1,8 @@
 
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
 import {
     getAllTrips,
     getAllPlaces,
@@ -144,6 +146,12 @@ export default function DiaryPage() {
                     <p className="mb-2 text-sm uppercase tracking-[0.2em] text-[#788477]">
                         The stories behind the journey
                     </p>
+                    <Link
+  href="/"
+  className="inline-flex items-center gap-2 text-sm text-[#788477] hover:text-[#365442] transition"
+>
+  ← Back to Home
+</Link>
                     <h1 className="text-4xl font-semibold">Travel diary</h1>
                     <p className="mt-3 text-[#788477]">
                         Memories, experiences and recommendations from your travels.
