@@ -5,12 +5,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     createPlace,
-
     getAllTrips,
     getTripStops,
     getAllPlaces,
     deleteTrip,
-
     updateTripStop,
 } from "@/features/travel/travel_service";
 import type { Trip, TripStop, Place } from "@/features/travel/types";
@@ -248,10 +246,21 @@ setTrips(
 >
   ← Back to Home
 </Link>
-                    <h1 className="text-4xl font-semibold">Journey</h1>
-                    <p className="mt-3 text-[#788477]">
-                        Everywhere you've been, and everywhere you're going.
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 className="text-4xl font-semibold">Journey</h1>
+    <p className="mt-3 text-[#788477]">
+      Everywhere you've been, and everywhere you're going.
+    </p>
+  </div>
+
+  <Link
+    href="/trips/new"
+    className="rounded-lg bg-[#365442] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#2b4435]"
+  >
+    + New Trip
+  </Link>
+</div>
                 </div>
 
                 <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
