@@ -16,8 +16,6 @@ import type {
     DiaryEntryType,
 } from "@/features/travel/types";
 
-
-
 type DiaryItem = DiaryEntry & {
     place?: Place;
     trip?: Trip;
@@ -77,7 +75,6 @@ export default function DiaryPage() {
         );
         setLoading(false);
     }
-
 
     useEffect(() => {
         loadDiary();

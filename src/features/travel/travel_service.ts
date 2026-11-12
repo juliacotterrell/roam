@@ -87,7 +87,46 @@ export async function getAllTrips() {
 export async function getTrip(tripId: string) {
   return db.trips.get(tripId);
 }
+export async function deleteTrip(tripId: string): Promise<void> {
+  await db.transaction(
+    "rw",
+    db.trips,
+    db.tripStops,
+    db.diaryEntries,
+    db.expenses,
+    async () => {
+      const trip = await db.trips.get(tripId);
 
+      if (!trip) {
+        throw new Error("Trip does not exist.");
+      }
+
+      const stops = await db.tripStops
+        .where("tripId")
+        .equals(tripId)
+        .toArray();
+
+      const stopIds = stops.map((stop) => stop.id);
+
+      await db.diaryEntries
+        .where("tripStopId")
+        .anyOf(stopIds)
+        .delete();
+
+      await db.expenses
+        .where("tripId")
+        .equals(tripId)
+        .delete();
+
+      await db.tripStops
+        .where("tripId")
+        .equals(tripId)
+        .delete();
+
+      await db.trips.delete(tripId);
+    }
+  );
+}
 /* =========================================
    TRIP STOPS
 ========================================= */
@@ -154,6 +193,17 @@ export async function createTripStop(
       return stop;
     }
   );
+}
+export async function updateTripStop(
+  id: string,
+  updates: Partial<
+    Omit<TripStop, "id" | "tripId" | "createdAt" | "updatedAt">
+  >
+): Promise<void> {
+  await db.tripStops.update(id, {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export async function getTripStops(tripId: string) {
@@ -352,4 +402,5 @@ export async function importDiaryEntries(
   );
 
   return importedCount;
+
 }
