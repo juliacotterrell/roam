@@ -1,5 +1,6 @@
 
 import { db } from "./database";
+import { places, trips, tripStops } from "./seed_data";
 
 import type {
   Place,
@@ -254,4 +255,23 @@ export async function getTripStopExpenses(tripStopId: string) {
     .where("tripStopId")
     .equals(tripStopId)
     .sortBy("date");
+}
+
+export async function initialiseDatabase(): Promise<void> {
+  await db.transaction(
+    "rw",
+    db.places,
+    db.trips,
+    db.tripStops,
+    async () => {
+      // Only seed the database if it has not already been populated.
+      if (await db.places.count() > 0) {
+        return;
+      }
+
+      await db.places.bulkAdd(places);
+      await db.trips.bulkAdd(trips);
+      await db.tripStops.bulkAdd(tripStops);
+    }
+  );
 }
