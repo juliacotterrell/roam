@@ -1,113 +1,196 @@
 
-const stats = [
-  { label: "Total budget", value: "R 30,000", detail: "Your trip allowance" },
-  { label: "Spent so far", value: "R 12,450", detail: "41.5% of your budget" },
-  { label: "Remaining", value: "R 17,550", detail: "Available to spend" },
-  { label: "Daily allowance", value: "R 585", detail: "Based on remaining trip days" },
-];
+"use client";
 
-const destinations = [
-  { place: "Hanoi", country: "Vietnam", dates: "12–17 November", status: "Current stop" },
-  { place: "Luang Prabang", country: "Laos", dates: "18–23 November", status: "Upcoming" },
-  { place: "Bangkok", country: "Thailand", dates: "24–29 November", status: "Upcoming" },
-];
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  getAllTrips,
+  getAllPlaces,
+  getTripExpenses,
+} from "@/features/travel/travel_service";
+import type { Trip, Place } from "@/features/travel/types";
 
-export default function Home() {
+export default function HomePage() {
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      const [tripData, placeData] = await Promise.all([
+        getAllTrips(),
+        getAllPlaces(),
+      ]);
+
+      const expenseData = await Promise.all(
+        tripData.map((trip) => getTripExpenses(trip.id))
+      );
+
+      const spent = expenseData
+        .flat()
+        .reduce((total, expense) => total + (expense.homeAmount ?? expense.amount), 0);
+
+      setTrips(tripData.sort((a, b) => a.startDate.localeCompare(b.startDate)));
+      setPlaces(placeData);
+      setTotalSpent(spent);
+      setLoading(false);
+    }
+
+    loadDashboard();
+  }, []);
+
+  const destinationCount = places.filter(
+    (place) => place.type === "city" || place.type === "town" || place.type === "region"
+  ).length;
+
+  const countryCount = places.filter(
+    (place) => place.type === "country"
+  ).length;
+
+  function formatDate(date: string) {
+    return new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  if (loading) {
+    return <main className="p-8">Loading Roam...</main>;
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f6f0] text-[#243b32]">
-      <nav className="flex items-center justify-between border-b border-[#e5e5dc] px-6 py-5 md:px-12">
-        <div className="text-2xl font-semibold tracking-tight">roam<span className="text-[#a4a98b]">.</span></div>
-        <div className="hidden gap-8 text-sm text-[#65736a] md:flex">
-          <a className="text-[#243b32] font-medium" href="/">Overview</a>
-          <a href="/expenses">Expenses</a>
-          <a href="/journey">Journey</a>
-          <a href="/notes">Travel notes</a>
-        </div>
-        <div className="text-sm text-[#65736a]">My trip ↗</div>
-      </nav>
+    <main className="min-h-screen bg-[#f8f7f3] p-6 text-[#24382d] sm:p-10">
+      <div className="mx-auto max-w-6xl">
 
-      <div className="mx-auto max-w-6xl px-6 py-10 md:px-12 md:py-14">
+        {/* Header */}
+        <header className="mb-12 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 text-sm uppercase tracking-[0.2em] text-[#788477]">
+              Your personal travel companion
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+              Roam<span className="text-[#8a9a82]">.</span>
+            </h1>
+            <p className="mt-3 text-[#788477]">
+              Keep track of where you've been, where you're going and what it costs.
+            </p>
+          </div>
+          <Link
+            href="/places"
+            className="rounded-lg border border-[#dce3da] px-5 py-3 text-sm hover:bg-white"
+          >
+            Explore places →
+          </Link>
+        </header>
+
+        {/* Overview */}
         <section className="mb-12">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#8a967b]">
-            Your travel companion
-          </p>
-          <h1 className="mb-3 text-4xl font-light tracking-tight md:text-5xl">
-            A little further, <span className="font-semibold">every day.</span>
-          </h1>
-          <p className="max-w-xl text-sm leading-6 text-[#758077]">
-            Keep track of where you’re going, what you’re spending and everything
-            worth remembering along the way.
-          </p>
+          <h2 className="mb-4 text-lg font-medium">Your travels at a glance</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-xl bg-white p-5">
+              <p className="text-3xl font-semibold">{trips.length}</p>
+              <p className="mt-1 text-sm text-[#788477]">Trips</p>
+            </div>
+            <div className="rounded-xl bg-white p-5">
+              <p className="text-3xl font-semibold">{countryCount}</p>
+              <p className="mt-1 text-sm text-[#788477]">Countries</p>
+            </div>
+            <div className="rounded-xl bg-white p-5">
+              <p className="text-3xl font-semibold">{destinationCount}</p>
+              <p className="mt-1 text-sm text-[#788477]">Destinations</p>
+            </div>
+            <div className="rounded-xl bg-white p-5">
+              <p className="text-3xl font-semibold">
+                R{totalSpent.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+              </p>
+              <p className="mt-1 text-sm text-[#788477]">Total recorded spend</p>
+            </div>
+          </div>
         </section>
 
+        {/* Main navigation */}
         <section className="mb-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Your finances</h2>
-            <a href="/expenses" className="text-sm text-[#71816e] hover:underline">
-              View expenses →
-            </a>
+          <h2 className="mb-4 text-lg font-medium">Your travel workspace</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+
+            <Link
+              href="/journey"
+              className="group rounded-xl bg-[#e8eee6] p-6 transition hover:bg-[#dce6d9]"
+            >
+              <p className="mb-8 text-2xl">↗</p>
+              <h3 className="text-xl font-semibold">Journey</h3>
+              <p className="mt-2 text-sm text-[#647568]">
+                Plan your route, organise destinations and keep track of bookings.
+              </p>
+              <p className="mt-5 text-sm font-medium">View your journey →</p>
+            </Link>
+
+            <Link
+              href="/places"
+              className="group rounded-xl bg-[#eeeae0] p-6 transition hover:bg-[#e5dfd1]"
+            >
+              <p className="mb-8 text-2xl">⌖</p>
+              <h3 className="text-xl font-semibold">Places</h3>
+              <p className="mt-2 text-sm text-[#777365]">
+                Your library of countries, destinations, accommodation and places.
+              </p>
+              <p className="mt-5 text-sm font-medium">Explore places →</p>
+            </Link>
+
+            <Link
+              href="/diary"
+              className="group rounded-xl bg-[#eae8ed] p-6 transition hover:bg-[#dedbe5]"
+            >
+              <p className="mb-8 text-2xl">✎</p>
+              <h3 className="text-xl font-semibold">Travel diary</h3>
+              <p className="mt-2 text-sm text-[#777181]">
+                Record memories, recommendations and the stories behind your travels.
+              </p>
+              <p className="mt-5 text-sm font-medium">Open your diary →</p>
+            </Link>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-[#e7e6dc] bg-white/70 p-5">
-                <p className="mb-4 text-xs text-[#849087]">{stat.label}</p>
-                <p className="mb-2 text-2xl font-semibold tracking-tight">{stat.value}</p>
-                <p className="text-xs text-[#9a9f95]">{stat.detail}</p>
-              </div>
+        </section>
+
+        {/* Trips */}
+        <section>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-medium">Your trips</h2>
+            <Link
+              href="/journey"
+              className="text-sm text-[#788477] hover:text-[#24382d]"
+            >
+              View all →
+            </Link>
+          </div>
+
+          <div className="divide-y divide-[#e5e5dc] rounded-xl border border-[#e5e5dc] bg-white px-5">
+            {trips.map((trip) => (
+              <Link
+                href="/journey"
+                key={trip.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-5"
+              >
+                <div>
+                  <h3 className="font-medium">{trip.name}</h3>
+                  <p className="mt-1 text-sm text-[#788477]">
+                    {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
+                  </p>
+                </div>
+                <span className="text-sm text-[#788477]">
+                  {places.filter((place) => place.parentPlaceId ===
+                    places.find((country) => country.name === trip.name)?.id
+                  ).length} destinations
+                  <span className="ml-3">→</span>
+                </span>
+              </Link>
             ))}
           </div>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-          <div>
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">The journey</h2>
-              <a href="/journey" className="text-sm text-[#71816e] hover:underline">
-                View itinerary →
-              </a>
-            </div>
-            <div className="rounded-xl border border-[#e7e6dc] bg-white/70 p-6">
-              {destinations.map((destination, index) => (
-                <div key={destination.place} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className={`mt-1 h-3 w-3 rounded-full ${index === 0 ? "bg-[#71876b]" : "border-2 border-[#c8cdbd]"}`} />
-                    {index !== destinations.length - 1 && <div className="my-2 min-h-12 w-px bg-[#dfe2d8]" />}
-                  </div>
-                  <div className="pb-5">
-                    <p className="font-medium">{destination.place}</p>
-                    <p className="text-sm text-[#849087]">{destination.country} · {destination.dates}</p>
-                    <p className="mt-1 text-xs text-[#9a9f95]">{destination.status}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Travel diary</h2>
-            <a href="/diary" className="text-sm text-[#71816e] hover:underline">
-              View diary →
-            </a>
-          </div>
-          <div className="flex min-h-48 flex-col justify-between rounded-xl bg-[#e9ecdf] p-6">
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#7c8b72]">
-                The stories along the way
-              </p>
-              <p className="text-lg font-medium leading-7">
-                Keep the places, people and little moments you'll want to remember.
-              </p>
-            </div>
-            <a href="/diary" className="mt-6 text-sm font-medium text-[#52684e]">
-              Explore your diary →
-            </a>
-          </div>
-        </div>
-        </section>
-
-        <footer className="mt-16 border-t border-[#e5e5dc] pt-6 text-xs text-[#9a9f95]">
-          Made for the journey. Wherever it takes you.
+        <footer className="mt-16 border-t border-[#e5e5dc] pt-6 text-sm text-[#92978e]">
+          Roam · Made for the journey.
         </footer>
       </div>
     </main>

@@ -1,6 +1,7 @@
 
 import { db } from "./database";
 import { places, trips, tripStops } from "./seed_data";
+import type { DiarySeedEntry } from "./diary_seed_data";
 
 import type {
   Place,
@@ -274,4 +275,81 @@ export async function initialiseDatabase(): Promise<void> {
       await db.tripStops.bulkAdd(tripStops);
     }
   );
+}
+
+
+export async function importDiaryEntries(
+  seedEntries: DiarySeedEntry[]
+): Promise<number> {
+  let importedCount = 0;
+
+  await db.transaction(
+    "rw",
+    db.trips,
+    db.tripStops,
+    db.places,
+    db.diaryEntries,
+    async () => {
+      for (const entry of seedEntries) {
+        const trip = await db.trips
+          .where("name")
+          .equals(entry.tripName)
+          .first();
+
+        if (!trip) {
+          throw new Error(`Trip not found: ${entry.tripName}`);
+        }
+
+        const place = await db.places
+          .where("name")
+          .equals(entry.placeName)
+          .first();
+
+        if (!place) {
+          throw new Error(`Place not found: ${entry.placeName}`);
+        }
+
+        const stop = await db.tripStops
+          .where("[tripId+placeId]")
+          .equals([trip.id, place.id])
+          .first();
+
+        if (!stop) {
+          throw new Error(
+            `Trip stop not found: ${entry.tripName} - ${entry.placeName}`
+          );
+        }
+
+        const existingEntry = await db.diaryEntries
+          .where("[tripStopId+date]")
+          .equals([stop.id, entry.date])
+          .filter(
+            (item) =>
+              item.title === entry.title &&
+              item.type === entry.type
+          )
+          .first();
+
+        if (existingEntry) continue;
+
+        const timestamp = new Date().toISOString();
+
+        await db.diaryEntries.add({
+          id: crypto.randomUUID(),
+          tripStopId: stop.id,
+          placeId: place.id,
+          date: entry.date,
+          title: entry.title,
+          content: entry.content,
+          type: entry.type,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+
+        importedCount++;
+      }
+    }
+  );
+
+  return importedCount;
 }
